@@ -1,5 +1,6 @@
 <h2>IMS - Inventory Management System </h2><br/>
 
+#Development feature : Json file backend for database
 
 Simple Inventory Management System for enterprise, build with java and console interface, in the version 1.0 <br/>
 program have several basic feature in inventory management that is:<br/>
