@@ -4,6 +4,11 @@ import java.util.Arrays;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 
+/**
+ * This is version with support json backend file for database
+ */
+
+
 public class Main {
 
     private static String[][] inventoryData = new String[100][7];
