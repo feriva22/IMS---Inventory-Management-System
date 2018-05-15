@@ -15,6 +15,7 @@ for your company inventory, improve the UI, sorting item based on Category, Bran
 Company profile edit<br/>
 
 Usage : <br/>
+
     1. Compile the Main.java in src/ folder with your favorite IDE
     2. Run
     3. input the command for access the feature in the above, input "?" for show all command
