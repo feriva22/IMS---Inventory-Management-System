@@ -26,10 +26,31 @@ public class Main {
                 inventoryData[i] = line.split(",");
                 i++;
             }
+
         }
         catch(final Exception e){
 
         }
+    }
+
+    /**
+     * function delData()
+     * for reset all array data (not database)
+     * @return true if no error , otherwise false if have error
+     */
+    public static boolean delData(){
+        try{
+            for (int baris=0;baris<inventoryData.length;baris++){
+                for (int kolom=0;kolom<inventoryData[baris].length;kolom++){
+                    inventoryData[baris][kolom] = null;
+                }
+            }
+        }
+        catch (final Exception e){
+            return false;
+        }
+        return true;
+
     }
 
     /**
@@ -148,9 +169,45 @@ public class Main {
             }
 
         }
+    }
 
+    /**
+     * method delitem()
+     * for delete an item in inventory
+     * @param modelName model name of a item
+     */
+    public static void delitem(String modelName){
+        try {
+            String[][] matriksTmp = new String[100][7];
+            int row = 0;
+            int tmp = i;
+            for (int baris = 0; baris < tmp; baris++) {
+                int col = 0;
+                if (inventoryData[baris][4].contains(modelName)) {
+                    i--;
+                    continue;
+                } else {
+                    for (int kolom = 0; kolom < inventoryData[0].length; kolom++) {
+                        matriksTmp[row][col] = inventoryData[baris][kolom];
+                        col++;
+                    }
+                }
+                row++;
+            }
 
+            if (delData()) {
+                for (int baris = 0; baris < i; baris++) {
+                    for (int kolom = 0; kolom < inventoryData[baris].length; kolom++) {
+                        inventoryData[baris][kolom] = matriksTmp[baris][kolom];
+                    }
+                }
+            }
 
+            System.out.println("Success delete item");
+        }
+        catch (final Exception e){
+            System.out.println("Sorry cannot delete item");
+        }
 
     }
 
@@ -187,7 +244,8 @@ public class Main {
                 System.out.println("Cmd\tCommand\tParams\tDescription");
                 System.out.println("~~~\t~~~~~~~\t~~~~~~\t~~~~~~~~~~~");
                 System.out.println("li\tlistitems\t\tList all items on inventory");
-                System.out.println("additem\tadd item\t\tAdd item");
+                System.out.println("additem\tadd item\t\tAdd a item");
+                System.out.println("delitem\tdelete item\t\tDelete a item");
                 System.out.println();
                 System.out.println("Management Commands:");
                 System.out.println("Cmd\tCommand\tParams\tDescription");
@@ -207,11 +265,21 @@ public class Main {
                 readInventory();
 
             }
+            else if(command.compareToIgnoreCase("delitem") == 0){
+                System.out.print("Input the Model Name : ");
+                String modName = input.next();
+                delitem(modName);
+
+
+            }
             else if (command.compareToIgnoreCase("savedata") == 0){
                 saveData();
             }
             else if(command.compareToIgnoreCase("exit") == 0){
                 notExit = false;
+            }
+            else {
+                System.out.println("Command not found");
             }
 
         }
