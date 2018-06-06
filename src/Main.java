@@ -1,11 +1,17 @@
+import com.sun.org.apache.bcel.internal.generic.ARRAYLENGTH;
+
 import java.io.*;
 import java.text.DateFormat;
+import java.text.DateFormatSymbols;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.InputMismatchException;
-import java.util.Scanner;
+import java.util.*;
 
+/**
+ * @author feriva22 & adhit
+ * @version 1.10
+ *
+ */
 public class Main {
 
     //initialize array variable
@@ -22,6 +28,7 @@ public class Main {
     //initialize object variable
     private static Scanner input = new Scanner(System.in);
     private static DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+    private static DateFormat monthFormat = new SimpleDateFormat("MM");
     private static DateFormat clockFormat = new SimpleDateFormat("hh:mm:ss");
     private static Date date = new Date();
 
@@ -71,10 +78,9 @@ public class Main {
     }
 
     /**
-     * function loadConfig()
+     * method loadConfig()
      * load configuration file
      *
-     * @return true if load success, or false if load have trouble
      */
     public static void loadConfig() {
         try {
@@ -250,7 +256,7 @@ public class Main {
                 double tmptotorder = 0;
                 double tmptotcost =0;
                 for (int i=0;i<totOrd;i++){
-                    if (orderData[Integer.parseInt(item_id)][1].compareToIgnoreCase(String.valueOf(0)) == 0){
+                    if (orderData[i][1].compareToIgnoreCase(item_id) == 0){
                         tmptotcost += Integer.parseInt(orderData[i][3]);
                         tmptotorder++;
                     }
@@ -366,20 +372,35 @@ public class Main {
      * method for printout detail of a item
      * @param item_id item id
      */
-    public static void detailItem(int item_id){
+    public static void detailItem(int item_id) throws ParseException {
         clsScreen();
         System.out.println("Item details");
-        System.out.println("Product Name : "+inventoryData[item_id][3]+" ("+inventoryData[item_id][4]+")");
-        System.out.println("Brand : "+inventoryData[item_id][2]);
-        System.out.println("Category : "+inventoryData[item_id][1]);
+        System.out.println(String.format("%1$-33s%2$17s%3$-30s","Product Name : "+stripString(inventoryData[item_id][3],18),
+                "","Stocks : "+inventoryData[item_id][5]));
+        System.out.println(String.format("%1$-33s%2$17s%3$-30s","Brand : "+stripString(inventoryData[item_id][2],25),
+                "","Price/unit (Rp) : "+String.format("%,.0f",Double.parseDouble(inventoryData[item_id][7]))));
+        System.out.println(String.format("%1$-33s%2$17s%3$-30s","Category : "+stripString(inventoryData[item_id][1],22),
+                "","Average Cost (Rp) : "+String.format("%,.0f",Double.parseDouble(inventoryData[item_id][6]))));
         System.out.println();
-        System.out.println("Stock : " + inventoryData[item_id][5]);
-        System.out.printf("Average Cost : Rp. %-16s\n",String.format("%,.0f",Double.parseDouble(inventoryData[item_id][6])));
-        System.out.printf("Price per unit : Rp. %-16s\n",String.format("%,.0f",Double.parseDouble(inventoryData[item_id][7])));
-
         System.out.println("Statistic sales ");
 
+        int[][] result = salesTotal(item_id,6);
+        int totSales = 0;
+        for (int i=0;i<result.length;i++){
+            totSales += result[i][2];
+        }
 
+        System.out.println("Total Sales in 6 month from now : "+totSales);
+        System.out.println("Detail sales :");
+        for (int j=result.length-1;j>=0;j--){
+            System.out.printf("%-10s ",(new DateFormatSymbols().getMonths()[result[j][0]-1].substring(0,3)+
+                    "/"+result[j][1]));
+        }
+        System.out.println();
+        for (int l=result.length-1;l>=0;l--){
+            System.out.printf("%-10s ",result[l][2]);
+        }
+        System.out.println();
     }
 
 
@@ -406,32 +427,13 @@ public class Main {
      * Method addItem()
      * method for add a item in database
      */
-    public static void addItem () throws InterruptedException{
-
-        String[] datatunggal = new String[8];
+    public static void addItem (String[] datatunggal) throws InterruptedException{
 
         if(inventoryData[0][0] == null){
             datatunggal[0] = String.valueOf("0");
         } else {
             datatunggal[0] = String.valueOf(Integer.parseInt(inventoryData[totItem - 1][0]) + 1);
         }
-
-        System.out.printf("add categories : ");
-        input.nextLine();
-        datatunggal[1]=input.nextLine();
-        System.out.printf("add brand: ");
-        datatunggal[2]=input.nextLine();
-        System.out.printf("add Item Description : ");
-        datatunggal[3]=input.nextLine();
-        System.out.printf("add Model Number : ");
-        datatunggal[4]=input.nextLine();
-        System.out.printf("add Stock : ");
-        datatunggal[5]=input.nextLine();
-        System.out.printf("add Unit Cost (Rp) : ");
-        datatunggal[6]=input.nextLine();
-        System.out.printf("add Sales price : ");
-        datatunggal[7]=input.nextLine();
-
 
         for(int baris = 0;baris<inventoryData.length;baris++){
             if (inventoryData[baris][0] == null) {
@@ -442,7 +444,7 @@ public class Main {
                     inventoryData[baris][l] = datatunggal[l];
                 }
                 totItem++;
-                orderStock(Integer.parseInt(datatunggal[0]),0,Integer.parseInt(datatunggal[5]),Integer.parseInt(datatunggal[6]));
+                orderStock(baris,0,Integer.parseInt(datatunggal[5]),Integer.parseInt(datatunggal[6]));
                 System.out.println("add item success");
                 break;
             }
@@ -450,8 +452,6 @@ public class Main {
                 System.out.println("sorry your input data same with data ");
                 break;
             }
-
-
         }
     }
 
@@ -478,35 +478,35 @@ public class Main {
      */
     public static void delitem(String modelName){
         try {
-            String[][] matriksTmp = new String[100][8];
-            int row = 0;
-            int tmp = totItem;
-            int cek = 0;
-            for (int baris = 0; baris < tmp; baris++) {
-                int col = 0;
-                if (inventoryData[baris][4].compareToIgnoreCase(modelName) == 0) {
-                    totItem--;
-                    cek++;
-                    continue;
-                } else {
-                    for (int kolom = 0; kolom < inventoryData[0].length; kolom++) {
-                        matriksTmp[row][col] = inventoryData[baris][kolom];
-                        col++;
 
+
+            int[] hasil = checkStock(modelName);
+
+            if (hasil[0] >= 0) {
+                String[][] matriksTmp = new String[100][8];
+                int row = 0;
+                int tmp = totItem;
+                for (int baris = 0; baris < tmp; baris++) {
+                    int col = 0;
+                    if (inventoryData[baris][4].compareToIgnoreCase(modelName) == 0) {
+                        totItem--;
+                        continue;
+                    } else {
+                        for (int kolom = 0; kolom < inventoryData[0].length; kolom++) {
+                            matriksTmp[row][col] = inventoryData[baris][kolom];
+                            col++;
+
+                        }
+                    }
+                    row++;
+                }
+                if (delData()) {
+                    for (int baris = 0; baris < totItem; baris++) {
+                        for (int kolom = 0; kolom < inventoryData[baris].length; kolom++) {
+                            inventoryData[baris][kolom] = matriksTmp[baris][kolom];
+                        }
                     }
                 }
-                row++;
-            }
-
-            if (delData()) {
-                for (int baris = 0; baris < totItem; baris++) {
-                    for (int kolom = 0; kolom < inventoryData[baris].length; kolom++) {
-                        inventoryData[baris][kolom] = matriksTmp[baris][kolom];
-                    }
-                }
-            }
-
-            if (cek > 0) {
                 System.out.println("Success delete item \""+ modelName + "\"");
             }
             else {
@@ -526,25 +526,20 @@ public class Main {
      * @return array 1 dimension with element position index of stock and total of stock
      */
     public static int[] checkStock(String modelName){
-        int cek = 0;
         int[] data = new int[2];
         if (inventoryData[0][0] != null) {
-            for (cek = 0; cek < totItem; cek++) {
+            for (int cek = 0; cek < totItem; cek++) {
                 if (inventoryData[cek][4].compareToIgnoreCase(modelName) == 0) {
                     data[0] = cek;
                     data[1] = Integer.parseInt(inventoryData[cek][5]);
                     return data;
-
                 }
             }
         }
-
         //if data cannot find in database
         data[0] = -1;
         data[1] = 0;
         return data;
-
-
     }
 
     /**
@@ -578,14 +573,56 @@ public class Main {
      * @throws InterruptedException
      */
     public static void sellStock(int item_id, int stocknow, int quantity) throws InterruptedException{
-
         inventoryData[item_id][5] = String.valueOf(stocknow-quantity);
         writeReport("sell","SALES_"+(totSales+1),inventoryData[item_id][0],quantity,Integer.parseInt(inventoryData[item_id][7]));
-
-
-
     }
 
+    /**
+     * function salesTotal()
+     * return list month with total stock has been selled
+     * @param item_id item id of item
+     * @param interMonth interval month from interMonth to now
+     * @return array 2 dimension with 3 column have value month, year and total sales
+     * @throws ParseException
+     */
+    public static int[][] salesTotal(int item_id, int interMonth) throws ParseException {
+
+        int[][] total = new int[interMonth][3];     //[month,year,data]
+        //change string array to integer array
+
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.MONTH, -(interMonth-1));
+        Date resultDate = cal.getTime();
+        //get list of interMonth-month ago
+
+        for (int i=0;i<interMonth;i++){
+            cal = Calendar.getInstance();
+            cal.add(Calendar.MONTH,-i);
+            Date minusMonth = cal.getTime();
+            int[] dateSales = Arrays.asList(dateFormat.format(minusMonth).split("/")).stream().mapToInt(Integer::parseInt).toArray();
+            total[i][0] = dateSales[1];
+            total[i][1] = dateSales[2];
+            total[i][2] = 0;
+        }
+
+        int tmpMaxSales = totSales-1;
+
+        while (!(tmpMaxSales < 0)) {
+            if (Integer.parseInt(salesData[tmpMaxSales][1]) == item_id) {
+                Date tmpDate = new SimpleDateFormat("dd/MM/yyyy").parse(salesData[tmpMaxSales][4]);
+                if (resultDate.before(tmpDate) ){
+                    int[] tmpDateSales = Arrays.asList(dateFormat.format(tmpDate).split("/")).stream().mapToInt(Integer::parseInt).toArray();
+                    for (int k=0;k<interMonth;k++){
+                        if (total[k][0] == tmpDateSales[1] && total[k][1] == tmpDateSales[2]){
+                            total[k][2] += Integer.parseInt(salesData[tmpMaxSales][2]);
+                        }
+                    }
+                }
+            }
+            tmpMaxSales--;
+        }
+        return total;
+    }
 
 
     /**
@@ -612,7 +649,7 @@ public class Main {
      * @throws InterruptedException
      */
 
-    public static void main(String[] args) throws InterruptedException,IOException {
+    public static void main(String[] args) throws InterruptedException, IOException, ParseException {
         clsScreen();
         init();
         System.out.println("IMS (Inventory Management System) ");
@@ -634,27 +671,46 @@ public class Main {
             if (command.compareToIgnoreCase("?") == 0) {
                 clsScreen();
                 System.out.println("Inventory Commands:");
-                System.out.println("Cmd\tCommand\tParams\tDescription");
-                System.out.println("~~~\t~~~~~~~\t~~~~~~\t~~~~~~~~~~~");
-                System.out.println("list\tlistitems\t\tList all items on inventory");
-                System.out.println("additem\tadd item\t\tAdd a item");
-                System.out.println("delitem\tdelete item\t\tDelete a item");
-                System.out.println("addstock\tadd stock item\t\tadd stock a item");
-                System.out.println("sellstock\tsell item\t\tSell a item");
+                System.out.printf("%-12s|%-35s|\n","Cmd","Description");
+                System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+                System.out.printf("%-12s|%-35s|\n","list","List all items on inventory");
+                System.out.printf("%-12s|%-35s|\n","additem","Add a item");
+                System.out.printf("%-12s|%-35s|\n","delitem","Delete a item");
+                System.out.printf("%-12s|%-35s|\n","edititem","Edit item with spesific properties");
+                System.out.printf("%-12s|%-35s|\n","detailitem","Show all detail about a item");
+                System.out.printf("%-12s|%-35s|\n","orderstock","add stock to item");
+                System.out.printf("%-12s|%-35s|\n","sellstock","Sell a item");
                 //System.out.println("geteoq\tget best quantity\t\tQuantity item per order");
                 System.out.println();
                 System.out.println("Management Commands:");
-                System.out.println("Cmd\tCommand\tParams\tDescription");
-                System.out.println("~~~\t~~~~~~~\t~~~~~~\t~~~~~~~~~~~");
-                System.out.println("?\thelp\t\tGet Help");
-                System.out.println("savedata\tsave data\t\tSave data to Database");
-                System.out.println("exit\texitapp\t\tExit the application");
+                System.out.printf("%-12s|%-35s|\n","Cmd","Description");
+                System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+                System.out.printf("%-12s|%-35s|\n","?","List help");
+                System.out.printf("%-12s|%-35s|\n","savedata","Save data to Database");
+                System.out.printf("%-12s|%-35s|\n","exit","Exit the application");
             } else if (command.compareToIgnoreCase("list") == 0) {
                 clsScreen();
                 readInventory();
             } else if (command.compareToIgnoreCase("additem") == 0) {
                 clsScreen();
-                addItem();
+                String[] datatunggal = new String[8];
+
+                System.out.printf("add categories : ");
+                input.nextLine();
+                datatunggal[1]=input.nextLine().replace(',',' ');
+                System.out.printf("add brand: ");
+                datatunggal[2]=input.nextLine();
+                System.out.printf("add Item Description : ");
+                datatunggal[3]=input.nextLine();
+                System.out.printf("add Model Number : ");
+                datatunggal[4]=input.nextLine();
+                System.out.printf("add Stock : ");
+                datatunggal[5]=input.nextLine();
+                System.out.printf("add Unit Cost (Rp) : ");
+                datatunggal[6]=input.nextLine();
+                System.out.printf("add Sales price (Rp) : ");
+                datatunggal[7]=input.nextLine();
+                addItem(datatunggal);
             } else if (command.compareToIgnoreCase("edititem") == 0) {
                 System.out.print("Input the Model Name : ");
                 String modName = input.next();
@@ -795,19 +851,6 @@ public class Main {
             else if(command.compareToIgnoreCase("exit") == 0){
                 notExit = false;
             }
-            //eoq in development
-            /*else if(command.compareToIgnoreCase("geteoq") == 0){
-                System.out.print("Input the Model Name :");
-                input.nextLine();
-                String modName = input.nextLine();
-                Double eoq = getEOQ(modName);
-                if (eoq != 0) {
-                    System.out.printf("%.0f unit per order\n", eoq);
-                }
-                else {
-                    System.out.println("sorry your item not found in database");
-                }
-            }*/
             else {
                 System.out.println("Command not found");
             }
