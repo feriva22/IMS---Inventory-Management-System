@@ -53,8 +53,7 @@ public class Main {
                 while(true) {
                     System.out.print("Input Number Contact of Company : ");
                     config[4][1] = input.nextLine();
-                    if (!(config[4][1].matches(".*\\d+.*")) || config[4][1].matches("[a-zA-Z].*[0-9]")
-                            || config[4][1].matches("[0-9].*[a-zA-Z]")) {
+                    if (validNumber(config[4][1])) {
                         System.out.println("\ryou input is wrong, please input again !");
                         continue;
                     }
