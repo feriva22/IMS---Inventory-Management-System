@@ -28,11 +28,8 @@ public class Main {
     //initialize object variable
     private static Scanner input = new Scanner(System.in);
     private static DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-    private static DateFormat monthFormat = new SimpleDateFormat("MM");
-    private static DateFormat clockFormat = new SimpleDateFormat("hh:mm:ss");
+    private static DateFormat clockFormat = new SimpleDateFormat("HH:mm:ss");
     private static Date date = new Date();
-
-
 
     /*-----------------------------------------------------------------------------------------------------------------*/
     /*Database Controller*/
@@ -48,15 +45,23 @@ public class Main {
             if (config[0][1].compareToIgnoreCase("false") == 0) {
                 System.out.println("Configuration for company profile not finish, please input !");
                 System.out.print("Input Company name : ");
-                config[1][1] = input.nextLine();
+                config[1][1] = input.nextLine().replace('=',' ');
                 System.out.print("What is sell in this company ? ");
-                config[2][1] = input.nextLine();
+                config[2][1] = input.nextLine().replace('=',' ');
                 System.out.print("Input Address of Company : ");
-                config[3][1] = input.nextLine();
-                System.out.print("Input Number Contact of Company : ");
-                config[4][1] = input.nextLine();
+                config[3][1] = input.nextLine().replace('=',' ');
+                while(true) {
+                    System.out.print("Input Number Contact of Company : ");
+                    config[4][1] = input.nextLine();
+                    if (!(config[4][1].matches(".*\\d+.*")) || config[4][1].matches("[a-zA-Z].*[0-9]")
+                            || config[4][1].matches("[0-9].*[a-zA-Z]")) {
+                        System.out.println("\ryou input is wrong, please input again !");
+                        continue;
+                    }
+                    break;
+                }
                 System.out.print("Input Email of Company : ");
-                config[5][1] = input.nextLine();
+                config[5][1] = input.nextLine().replace('=',' ');
                 config[0][1] = "true";
                 if (saveConfig()) {
                     System.out.println("Data company saved");
@@ -84,22 +89,18 @@ public class Main {
      */
     public static void loadConfig() {
         try {
-
             //Read file config and save to array config
             Scanner configdata = new Scanner(new File("config.cfg"));
             String cfg = "";
             int x = 0;
-
-            while ((cfg = configdata.nextLine()) != null) {
+            while (configdata.hasNextLine()) {
+                cfg = configdata.nextLine();
                 //use '=' as separator
                 config[x] = cfg.split("=");
                 x++;
             }
-
-
         } catch (final Exception e) {
-
-
+            System.out.println("Error because : "+e);
         }
     }
 
@@ -116,7 +117,6 @@ public class Main {
                 cnf.write(config[a][0] + "=" + config[a][1]);
                 cnf.write("\n");
             }
-
             cnf.flush();
             cnf.close();
             return true;
@@ -129,11 +129,10 @@ public class Main {
     /**
      * Method loadData()
      * for load all data from csv file "datainventory.csv" on the root project folder
-     * to array 2 dimenssions called inventoryData with buffer [100][7]
+     * to array 2 dimenssions called inventoryData
      */
     public static void loadData() {
         try {
-
             //load data order of item and save to orderdata array
             totOrd = 0;
             Scanner dataOrd = new Scanner(new File("reportorder.csv"));
@@ -145,7 +144,6 @@ public class Main {
                 orderData[totOrd] = lineOrd.split(",");
                 totOrd++;
             }
-
             //load data sales of item and save to salesData array
             totSales = 0;
             Scanner dataSales = new Scanner(new File("reportsales.csv"));
@@ -169,7 +167,6 @@ public class Main {
                 inventoryData[totItem] = lineInven.split(",");
                 totItem++;
             }
-
 
         } catch (final Exception e) {
             System.out.println("load data error : "+e);
@@ -256,9 +253,11 @@ public class Main {
                 double tmptotorder = 0;
                 double tmptotcost =0;
                 for (int i=0;i<totOrd;i++){
+                    //average cost of item in all report order
                     if (orderData[i][1].compareToIgnoreCase(item_id) == 0){
-                        tmptotcost += Integer.parseInt(orderData[i][3]);
-                        tmptotorder++;
+                        tmptotcost += Integer.parseInt(orderData[i][3])*Integer.parseInt(orderData[i][2]);
+                        tmptotorder += Integer.parseInt(orderData[i][2]);
+
                     }
                 }
                 //set average cost to array inventory
@@ -282,10 +281,9 @@ public class Main {
 
 
         } catch (final Exception e) {
-
+            System.out.println("Has error : "+e);
         }
     }
-
 
     /*---------------------------------------------------------------------------------------------------------------*/
     /*UI Controller*/
@@ -354,7 +352,7 @@ public class Main {
         //printout content of table
         if (totItem > 0) {
             for (int baris = 0; baris <= totItem - 1; baris++) {
-                System.out.printf("| %-10s| %-8s| %-15s| %-12s| %-5s| %-16s | %-18s| %-20s|%n",
+                System.out.printf("| %-10s| %-8s| %-15s| %-12s| %5s| %16s | %18s| %20s|%n",
                         stripString(inventoryData[baris][1],10), stripString(inventoryData[baris][2],8),
                         stripString(inventoryData[baris][3],15), stripString(inventoryData[baris][4],12),
                         stripString(inventoryData[baris][5],5), String.format("%,.0f",Double.parseDouble(inventoryData[baris][7])),
@@ -375,51 +373,69 @@ public class Main {
     public static void detailItem(int item_id) throws ParseException {
         clsScreen();
         System.out.println("Item details");
-        System.out.println(String.format("%1$-33s%2$17s%3$-30s","Product Name : "+stripString(inventoryData[item_id][3],18),
-                "","Stocks : "+inventoryData[item_id][5]));
-        System.out.println(String.format("%1$-33s%2$17s%3$-30s","Brand : "+stripString(inventoryData[item_id][2],25),
-                "","Price/unit (Rp) : "+String.format("%,.0f",Double.parseDouble(inventoryData[item_id][7]))));
-        System.out.println(String.format("%1$-33s%2$17s%3$-30s","Category : "+stripString(inventoryData[item_id][1],22),
+        System.out.println(String.format("%1$-40s%2$10s%3$-30s","ID           : "+stripString(inventoryData[item_id][0],18),
+                "","Model Name        : "+inventoryData[item_id][4]));
+        System.out.println(String.format("%1$-40s%2$10s%3$-30s","Product Name : "+stripString(inventoryData[item_id][3],18),
+                "","Stocks            : "+inventoryData[item_id][5]));
+        System.out.println(String.format("%1$-40s%2$10s%3$-30s","Brand        : "+stripString(inventoryData[item_id][2],18),
+                "","Price/unit (Rp)   : "+String.format("%,.0f",Double.parseDouble(inventoryData[item_id][7]))));
+        System.out.println(String.format("%1$-40s%2$10s%3$-30s","Category     : "+stripString(inventoryData[item_id][1],18),
                 "","Average Cost (Rp) : "+String.format("%,.0f",Double.parseDouble(inventoryData[item_id][6]))));
         System.out.println();
-        System.out.println("Statistic sales ");
+        System.out.println("Statistic ");
 
         int[][] result = salesTotal(item_id,6);
         int totSales = 0;
         for (int i=0;i<result.length;i++){
             totSales += result[i][2];
         }
-
+        int[] totDetailSales = new int[3];
         System.out.println("Total Sales in 6 month from now : "+totSales);
-        System.out.println("Detail sales :");
+        System.out.println("Detail :");
+        System.out.printf("%-8s|","date");
         for (int j=result.length-1;j>=0;j--){
-            System.out.printf("%-10s ",(new DateFormatSymbols().getMonths()[result[j][0]-1].substring(0,3)+
+            System.out.printf("%12s",(new DateFormatSymbols().getMonths()[result[j][0]-1].substring(0,3)+
                     "/"+result[j][1]));
         }
+        System.out.printf("%14s","Total");
         System.out.println();
+        System.out.printf("%-8s|","quantity");
         for (int l=result.length-1;l>=0;l--){
-            System.out.printf("%-10s ",result[l][2]);
+            System.out.printf("%12s",result[l][2]);
+            totDetailSales[0] += result[l][2];
         }
+        System.out.printf("%14s",totDetailSales[0]);
+        System.out.println();
+        System.out.printf("%-8s|","totsales");
+        for (int m=result.length-1;m>=0;m--){
+            System.out.printf("%12s",String.format("%,.0f",(double) result[m][3]));
+            totDetailSales[1] += result[m][3];
+        }
+        System.out.printf("%14s",String.format("%,.0f", (double) totDetailSales[1]));
+        System.out.println();
+        System.out.printf("%-8s|","profit");
+        for (int n=result.length-1;n>=0;n--){
+            double profit = result[n][3] - (Double.parseDouble(inventoryData[item_id][6])*result[n][2]);
+            System.out.printf("%12s",String.format("%,.0f",(profit)));
+            totDetailSales[2] += profit;
+        }
+        System.out.printf("%14s",String.format("%,.0f", (double) totDetailSales[2]));
         System.out.println();
     }
 
-
-    public static void pwd() throws IOException{
-        String dir = System.getProperty("user.dir");
-        System.out.println("working dir : "+dir);
-        File f = new File("."); // current directory
-
-        File[] files = f.listFiles();
-        for (File file : files) {
-            if (file.isDirectory()) {
-                System.out.print("directory:");
-            } else {
-                System.out.print("     file:");
-            }
-            System.out.println(file.getCanonicalPath());
+    /**
+     * function validNumber
+     * for validation param number is numeric or not
+     * @param number string contain numeric
+     * @return true if param number is not numeric false if otherwise
+     */
+    public static Boolean validNumber(String number){
+        if (!(number.matches("^[0-9]*$"))){
+            return true;
         }
-    };
-
+        return false;
+    }
+    
     /*----------------------------------------------------------------------------------------------------------------*/
     /*Inventory controller*/
 
@@ -478,8 +494,6 @@ public class Main {
      */
     public static void delitem(String modelName){
         try {
-
-
             int[] hasil = checkStock(modelName);
 
             if (hasil[0] >= 0) {
@@ -495,7 +509,6 @@ public class Main {
                         for (int kolom = 0; kolom < inventoryData[0].length; kolom++) {
                             matriksTmp[row][col] = inventoryData[baris][kolom];
                             col++;
-
                         }
                     }
                     row++;
@@ -507,6 +520,8 @@ public class Main {
                         }
                     }
                 }
+                saveData();
+                loadData();
                 System.out.println("Success delete item \""+ modelName + "\"");
             }
             else {
@@ -552,7 +567,6 @@ public class Main {
      * @throws InterruptedException
      */
     public static void orderStock(int item_id, int stocknow, int quantity,int unit_cost) throws InterruptedException{
-
             inventoryData[item_id][5] = String.valueOf(stocknow + quantity);
             writeReport("order","ORDER_"+(totOrd+1),inventoryData[item_id][0],quantity,unit_cost);
             //loading
@@ -587,7 +601,7 @@ public class Main {
      */
     public static int[][] salesTotal(int item_id, int interMonth) throws ParseException {
 
-        int[][] total = new int[interMonth][3];     //[month,year,data]
+        int[][] total = new int[interMonth][4];     //[month,year,datasales,totalsale]
         //change string array to integer array
 
         Calendar cal = Calendar.getInstance();
@@ -603,6 +617,7 @@ public class Main {
             total[i][0] = dateSales[1];
             total[i][1] = dateSales[2];
             total[i][2] = 0;
+            total[i][3] = 0;
         }
 
         int tmpMaxSales = totSales-1;
@@ -615,6 +630,7 @@ public class Main {
                     for (int k=0;k<interMonth;k++){
                         if (total[k][0] == tmpDateSales[1] && total[k][1] == tmpDateSales[2]){
                             total[k][2] += Integer.parseInt(salesData[tmpMaxSales][2]);
+                            total[k][3] += Integer.parseInt(salesData[tmpMaxSales][2])*Integer.parseInt(salesData[tmpMaxSales][3]);
                         }
                     }
                 }
@@ -624,22 +640,31 @@ public class Main {
         return total;
     }
 
+    /*----------------------------------------------------------------------------------------------------------------*/
+    /* Utilities Controller*/
 
     /**
-     * function getEOQ
-     * @param modName
-     * @return
+     * function getInput()
+     * function for input from keyboard and return as string
+     * @return String inputed from keyboard
      */
-    /*public static double getEOQ(String modName){
-        try {
-            int[] data = checkStock(modName);
+    public static String getInput() {
+        Scanner scanner = new Scanner(System.in);
+        return scanner.nextLine();
+    }
 
-            return Math.sqrt((2 * Integer.parseInt(inventoryData[data[0]][6]) * Integer.parseInt(inventoryData[data[0]][8])) / Integer.parseInt(inventoryData[data[0]][7]));
-        }
-        catch (final Exception e){
-            return 0;
-        }
-    }*/
+    /**
+     * method exitSystem()
+     * for exit from running program
+     */
+    public static void exitSystem(){
+        System.out.println();
+        System.out.println("Thanks has using this Software");
+        System.exit(1);
+    }
+
+    /*----------------------------------------------------------------------------------------------------------------*/
+    /* Main Controller*/
 
     /**
      * method Main()
@@ -655,207 +680,282 @@ public class Main {
         System.out.println("IMS (Inventory Management System) ");
         System.out.println("Running on system : "+System.getProperty("os.name"));
         System.out.println("Date now : "+dateFormat.format(date));
-        boolean notExit = true;
-        String command = "";
         System.out.println("Enter command , type \"?\" for help");
-
-        while(notExit) {
+        while(true) {
             System.out.print("cmd =>");
+            String tmp = getInput();
+            String[] command = tmp.split(" ");
 
-            try {
-                command = input.next();
-            } catch (InputMismatchException e) {
-                System.out.println(e.getMessage());
+            if(command[0].compareToIgnoreCase("?") == 0) {
+                if (command.length > 1) {
+                    System.out.println("Cannot use parameter");
+                } else {
+                    clsScreen();
+                    System.out.println();
+                    System.out.println("Inventory Commands:");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "Cmd", "Parameter", "Description");
+                    System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "list","", "List all items on inventory");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "additem", "", "Add a item");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "delitem", "<model name>", "Delete a item");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "edititem", "<model name>", "Edit item with spesific properties");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "detailitem", "<model name>", "Show all detail about a item");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "orderstock", "<model name>", "add stock to item");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "sellstock", "<model name>", "Sell a item");
+                    //System.out.println("geteoq\tget best quantity\t\tQuantity item per order");
+                    System.out.println();
+                    System.out.println("Management Commands:");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "Cmd", "Parameter", "Description");
+                    System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "?", "", "List help");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "savedata", "", "Save data to Database");
+                    System.out.printf("%-12s|%-12s|%-35s|\n", "exit", "", "Exit the application");
+                }
             }
-
-            if (command.compareToIgnoreCase("?") == 0) {
-                clsScreen();
-                System.out.println("Inventory Commands:");
-                System.out.printf("%-12s|%-35s|\n","Cmd","Description");
-                System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-                System.out.printf("%-12s|%-35s|\n","list","List all items on inventory");
-                System.out.printf("%-12s|%-35s|\n","additem","Add a item");
-                System.out.printf("%-12s|%-35s|\n","delitem","Delete a item");
-                System.out.printf("%-12s|%-35s|\n","edititem","Edit item with spesific properties");
-                System.out.printf("%-12s|%-35s|\n","detailitem","Show all detail about a item");
-                System.out.printf("%-12s|%-35s|\n","orderstock","add stock to item");
-                System.out.printf("%-12s|%-35s|\n","sellstock","Sell a item");
-                //System.out.println("geteoq\tget best quantity\t\tQuantity item per order");
-                System.out.println();
-                System.out.println("Management Commands:");
-                System.out.printf("%-12s|%-35s|\n","Cmd","Description");
-                System.out.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-                System.out.printf("%-12s|%-35s|\n","?","List help");
-                System.out.printf("%-12s|%-35s|\n","savedata","Save data to Database");
-                System.out.printf("%-12s|%-35s|\n","exit","Exit the application");
-            } else if (command.compareToIgnoreCase("list") == 0) {
-                clsScreen();
-                readInventory();
-            } else if (command.compareToIgnoreCase("additem") == 0) {
-                clsScreen();
-                String[] datatunggal = new String[8];
-
-                System.out.printf("add categories : ");
-                input.nextLine();
-                datatunggal[1]=input.nextLine().replace(',',' ');
-                System.out.printf("add brand: ");
-                datatunggal[2]=input.nextLine();
-                System.out.printf("add Item Description : ");
-                datatunggal[3]=input.nextLine();
-                System.out.printf("add Model Number : ");
-                datatunggal[4]=input.nextLine();
-                System.out.printf("add Stock : ");
-                datatunggal[5]=input.nextLine();
-                System.out.printf("add Unit Cost (Rp) : ");
-                datatunggal[6]=input.nextLine();
-                System.out.printf("add Sales price (Rp) : ");
-                datatunggal[7]=input.nextLine();
-                addItem(datatunggal);
-            } else if (command.compareToIgnoreCase("edititem") == 0) {
-                System.out.print("Input the Model Name : ");
-                String modName = input.next();
-                int[] hasil = checkStock(modName);
-                if (hasil[0] >= 0){
-                    System.out.println("1. Edit Category");
-                    System.out.println("2. Edit Brand");
-                    System.out.println("3. Edit Item Description");
-                    System.out.println("4. Edit Model Number");
-                    System.out.println("5. Edit Sales Price (Rp)");
-                    System.out.print("Input your choice [1-5] : ");
-                    int choice = input.nextInt();
-                    input.nextLine();
-                    switch (choice) {
-                        case 1:
-                            System.out.print("input category : ");
-                            String ctg = input.nextLine();
-                            System.out.println(hasil[0]);
-                            editItem(hasil[0],1,ctg);
-                            break;
-                        case 2:
-                            System.out.print("input brand : ");
-                            String brd = input.nextLine();
-                            editItem(hasil[0],2,brd);
-                            break;
-                        case 3:
-                            System.out.print("input item description : ");
-                            String idc = input.nextLine();
-                            editItem(hasil[0],3,idc);
-                            break;
-                        case 4:
-                            System.out.print("input model number : ");
-                            String mdn = input.nextLine();
-                            editItem(hasil[0],4,mdn);
-                            break;
-                        case 5:
-                            try {
-                                System.out.print("input Sales Price (Rp)");
-                                int salepr = input.nextInt();
-                                editItem(hasil[0], 7, String.valueOf(salepr));
-                                break;
-                            }catch (InputMismatchException exception){
-                                System.out.println("Please input number !");
+            else if(command[0].compareToIgnoreCase("list") == 0){
+                if (command.length > 1){
+                    System.out.println("Cannot use parameter");
+                }
+                else {
+                    clsScreen();
+                    System.out.println();
+                    readInventory();
+                }
+            }
+            else if(command[0].compareToIgnoreCase("additem") == 0){
+                if (command.length > 1){
+                    System.out.println("Cannot use parameter");
+                }
+                else {
+                    clsScreen();
+                    String[] datatunggal = new String[8];
+                    System.out.println();
+                    System.out.printf("add categories : ");
+                    datatunggal[1]=input.nextLine().replace(',',' ');
+                    System.out.printf("add brand: ");
+                    datatunggal[2]=input.nextLine().replace(',',' ');
+                    System.out.printf("add Item Description : ");
+                    datatunggal[3]=input.nextLine().replace(',',' ');
+                    System.out.printf("add Model Number : ");
+                    datatunggal[4]=input.nextLine().replace(',','-').replace(' ','-');
+                    while(true) {
+                        System.out.printf("add Stock : ");
+                        datatunggal[5] = input.nextLine().replace(',', ' ');
+                        if (validNumber(datatunggal[5])){
+                            System.out.println("Your input must number !");
+                            continue;
+                        }
+                        break;
+                    }
+                    while(true) {
+                        System.out.printf("add Unit Cost (Rp) : ");
+                        datatunggal[6] = input.nextLine().replace(',', ' ');
+                        if (validNumber(datatunggal[6])){
+                            System.out.println("Your input must number !");
+                            continue;
+                        }
+                        break;
+                    }
+                    while(true) {
+                        System.out.printf("add Sales price (Rp) : ");
+                        datatunggal[7] = input.nextLine().replace(',', ' ');
+                        if (validNumber(datatunggal[7])){
+                            System.out.println("Your input must number !");
+                            continue;
+                        }
+                        addItem(datatunggal);
+                        break;
+                    }
+                }
+            }
+            else if (command[0].compareToIgnoreCase("edititem") == 0) {
+                if (command.length != 2) {
+                    System.out.println("You must add 1 parameter model name");
+                }
+                else {
+                    String modName = command[1];
+                    int[] hasil = checkStock(modName);
+                    if (hasil[0] >= 0) {
+                        System.out.println("1. Edit Category");
+                        System.out.println("2. Edit Brand");
+                        System.out.println("3. Edit Item Description");
+                        System.out.println("4. Edit Model Number");
+                        System.out.println("5. Edit Sales Price (Rp)");
+                        String choice = "";
+                        while (true) {
+                            System.out.print("Input your choice [1-5] : ");
+                            choice = input.nextLine();
+                            if (validNumber(choice)) {
+                                System.out.println("Your input must number !");
+                                continue;
                             }
-                        default:
-                            System.out.print("Sorry your input is wrong");
+                            if (Integer.parseInt(choice) > 5 || Integer.parseInt(choice) <= 0) {
+                                System.out.println("Your input out of range !");
+                                continue;
+                            }
                             break;
-                    }
-                } else {
-                    System.out.println("Sorry your item cannot find in database");
-                }
-
-            } else if (command.compareToIgnoreCase("delitem") == 0) {
-                System.out.print("Input the Model Name : ");
-                String modName = input.next();
-                delitem(modName);
-            } else if (command.compareToIgnoreCase("detailitem") == 0){
-                System.out.print("Input the Model Name : ");
-                String modName = input.next();
-                int[] hasil = checkStock(modName);
-                if (hasil[0] >=0){
-                    detailItem(hasil[0]);
-                } else {
-                    System.out.println("Sorry your item cannot find in database");
-                }
-
-            } else if (command.compareToIgnoreCase("orderstock") == 0) {
-
-                int quantity = 0;
-                int cost = 0;
-                System.out.print("Input the Model Name : ");
-                String modName = input.next();
-                int[] hasil = checkStock(modName);
-                if (hasil[0] >= 0) {
-                    while (true) {
-                        System.out.print("Input quantity will be order : ");
-                        quantity = input.nextInt();
-                        if (quantity < 0) {
-                            System.out.println("\ryou cannot input minus, please input again !");
-                            continue;
                         }
-                        break;
-                    }
-                    while (true) {
-                        System.out.print("Input unit cost : ");
-                        cost = input.nextInt();
-                        if (cost < 0) {
-                            System.out.println("\ryou cannot input minus, please input again !");
-                            continue;
+
+                        switch (choice) {
+                            case "1":
+                                System.out.print("input category : ");
+                                String ctg = input.nextLine().replace(',', ' ');
+                                editItem(hasil[0], 1, ctg);
+                                break;
+                            case "2":
+                                System.out.print("input brand : ");
+                                String brd = input.nextLine().replace(',', ' ');
+                                editItem(hasil[0], 2, brd);
+                                break;
+                            case "3":
+                                System.out.print("input item description : ");
+                                String idc = input.nextLine().replace(',', ' ');
+                                editItem(hasil[0], 3, idc);
+                                break;
+                            case "4":
+                                System.out.print("input model number : ");
+                                String mdn = input.nextLine().replace(',', '-').replace(' ','-');
+                                editItem(hasil[0], 4, mdn);
+                                break;
+                            case "5":
+                                while (true) {
+                                    System.out.print("input Sales Price (Rp)");
+                                    String salepr = input.nextLine();
+                                    if (validNumber(salepr)) {
+                                        System.out.println("Your input must number !");
+                                        continue;
+                                    }
+                                    editItem(hasil[0], 7, salepr);
+                                    break;
+                                }
+
+                            default:
+                                break;
                         }
-                        break;
+                    } else {
+                        System.out.println("Sorry your item cannot find in database");
                     }
-                    orderStock(hasil[0], hasil[1], quantity, cost);
-                } else {
-                    System.out.println("Item is nothing in database");
+                }
+            } else if (command[0].compareToIgnoreCase("delitem") == 0) {
+                if (command.length != 2) {
+                    System.out.println("You must add 1 parameter model name");
+                }
+                else {
+                    String modName = command[1];
+                    delitem(modName);
+                }
+            } else if (command[0].compareToIgnoreCase("detailitem") == 0) {
+                if (command.length != 2) {
+                    System.out.println("You must add 1 parameter model name");
+                }
+                else {
+                    String modName = command[1];
+                    int[] hasil = checkStock(modName);
+                    if (hasil[0] >= 0) {
+                        detailItem(hasil[0]);
+                    } else {
+                        System.out.println("Sorry your item cannot find in database");
+                    }
+                }
+            } else if (command[0].compareToIgnoreCase("orderstock") == 0) {
+                if (command.length != 2) {
+                    System.out.println("You must add 1 parameter model name");
+                }
+                else {
+                    String quantity;
+                    String cost;
+                    String modName = command[1];
+                    int[] hasil = checkStock(modName);
+                    if (hasil[0] >= 0) {
+                        while (true) {
+                            System.out.print("Input quantity will be order : ");
+                            quantity = input.nextLine();
+                            if (validNumber(quantity)) {
+                                System.out.println("\ryou input is wrong, please input again !");
+                                continue;
+                            }
+                            break;
+                        }
+                        while (true) {
+                            System.out.print("Input unit cost : ");
+                            cost = input.nextLine();
+                            if (validNumber(cost)) {
+                                System.out.println("\ryou input is wrong, please input again !");
+                                continue;
+                            }
+                            break;
+                        }
+                        orderStock(hasil[0], hasil[1], Integer.parseInt(quantity), Integer.parseInt(cost));
+                    } else {
+                        System.out.println("Item is nothing in database");
+                    }
                 }
             }
-            else if(command.compareToIgnoreCase("sellstock") == 0){
-                System.out.print("Input the Model Name : ");
-                String modName = input.next();
-                int[] hasil = checkStock(modName);
-                if (hasil[0] >= 0 && hasil[1] > 0){
-                    System.out.println("Number stocks of "+modName+" : "+hasil[1]);
-                    while (input.hasNextLine()) {
-                        System.out.print("Input quantity will be sell : ");
-                        int quantity = input.nextInt();
-
+            else if (command[0].compareToIgnoreCase("sellstock") == 0) {
+                if (command.length != 2) {
+                    System.out.println("You must add 1 parameter model name");
+                } else {
+                    String modName = command[1];
+                    int[] hasil = checkStock(modName);
+                    if (hasil[0] >= 0 && hasil[1] > 0) {
+                        System.out.println("Number stocks of " + modName + " : " + hasil[1]);
+                        String quantity = "0";
+                        while (true) {
+                            System.out.print("Input quantity will be sell : ");
+                            quantity = input.nextLine();
+                            if (validNumber(quantity)) {
+                                System.out.println("\ryou input is wrong, please input again !");
+                                continue;
+                            }
+                            if (Integer.parseInt(quantity) <= 0) {
+                                System.out.println("You cannot input minus or zero");
+                                continue;
+                            }
+                            if ((hasil[1] - Integer.parseInt(quantity)) < 0) {
+                                System.out.println("\rsell Stock " + quantity + "\t (Fail)");
+                                System.out.println("Sorry your input make the stock minus, please input again !");
+                                continue;
+                            }
+                            break;
+                        }
                         //loading
-                        char[] loading = {'|','/','-','\\','|','/','-','\\','|'};
-                        for (char kar : loading){
-                            System.out.print("\rsell Stock "+kar);
+                        char[] loading = {'|', '/', '-', '\\', '|', '/', '-', '\\', '|'};
+                        for (char kar : loading) {
+                            System.out.print("\rsell Stock " + kar);
                             Thread.sleep(500);
                         }
-
-                        if ((hasil[1]-quantity) < 0){
-                            System.out.println("\rsell Stock "+quantity+"\t (Fail)");
-                            System.out.println("Sorry your input make the stock minus, please input again !");
-                            continue;
-                        }
-                        sellStock(hasil[0],hasil[1],quantity);
+                        sellStock(hasil[0], hasil[1], Integer.parseInt(quantity));
                         System.out.println("\rItem has been selled " + quantity + "\t (Success)");
-                        break;
+                    } else if (hasil[0] == -1) {
+                        System.out.println("Sorry the item cannot found in database");
+                    } else if (hasil[1] == 0) {
+                        System.out.println("The stock of item is empty");
                     }
                 }
-                else if (hasil[1] == 0 ) {
-                    System.out.println("The stock of item is empty");
+            }
+            else if(command[0].compareToIgnoreCase("savedata") == 0){
+                if (command.length > 1){
+                    System.out.println("Cannot use parameter");
                 }
-                else if (hasil[0] == -1 ){
-                    System.out.println("Sorry the item cannot found in database");
+                else {
+                    saveData();
                 }
             }
-            else if (command.compareToIgnoreCase("savedata") == 0) {
-                saveData();
+            else if(command[0].compareToIgnoreCase("exit") == 0) {
+                if (command.length > 1) {
+                    System.out.println("Cannot use parameter");
+                } else {
+                    exitSystem();
+                    break;
+                }
             }
-            else if (command.compareToIgnoreCase("pwd") == 0){
-                pwd();
-            }
-            else if(command.compareToIgnoreCase("exit") == 0){
-                notExit = false;
+            else if (command[0].compareToIgnoreCase("") ==0 ){
+
             }
             else {
-                System.out.println("Command not found");
+                System.out.println(command[0]+": Command not found");
             }
         }
-        System.out.println("Thanks has using this Software");
     }
 }
 
